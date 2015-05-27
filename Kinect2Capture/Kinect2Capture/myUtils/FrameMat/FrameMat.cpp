@@ -18,9 +18,9 @@ void FrameMat::saveFrame(int frame_number,int zero_num){
 	if(flag_output){
 		std::stringstream ss_imgname;
 		ss_imgname << (filepath.parent_path() / filepath.stem()).string() << std::setw(zero_num) << std::setfill('0') << frame_number << filepath.extension().string();
-
+		
 		boost::filesystem::path filepath_after(ss_imgname.str());
-		str_filename=filepath_after.filename().string();
+
 		cv::imwrite(ss_imgname.str(),imageMat);
 
 		std::cout << ss_imgname.str() << "...saved." << std::endl;
