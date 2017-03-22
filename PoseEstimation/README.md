@@ -39,7 +39,7 @@
 ### 1. Poserによるデータ生成
 #### 実行方法
 1. Poserを開く
-2. ファイル > スクリプトの実行 で，Script/Preprocessing/Poser/make\_(train|test).py を選択
+2. ファイル > スクリプトの実行 で，Script/Preprocessing/Poser/make\_data.py を選択
 
 ※ 基本的には0.5sec程度で1組のデータが生成されるが，1日程経つと生成速度がかなり落ちるため，一旦Poserを強制終了した後に，実行し直すという手順を取ったほうが生成が早く終わる．
 
@@ -50,10 +50,8 @@
     - Data/Preprocessing/Poser/(female|male).pz3
 
 #### 出力
-- 合成学習データ(深度画像，部位ラベル，Poser内パラメタの組 15,000×64組) : 
-    - Data/Main/BodyPartClassification/SyntheticImages/train/\*( Z.png|.png|\_param)
-- 合成テストデータ(深度画像，部位ラベル，Poser内パラメタの組 100×64組)  : 
-    - Data/Main/BodyPartClassification/SyntheticImages/test/\*( Z.png|.png|\_param)
+- 合成データ(深度画像，部位ラベル，Poser内パラメタの組 16,000×64組) : 
+    - Data/Main/BodyPartClassification/SyntheticImages/(female|male)/\*( Z.png|.png|\_param)
 
 
 ### 2. 実データの取得
@@ -154,11 +152,12 @@ python JPP_precision.py -t TestPath -n NTrain -N NTest [-D DiscrType]
 
 #### 入力
 - 合成データに対する人物姿勢推定結果(関節の3次元位置データ$NTest個)
-    - 2.または3.で合成データを$TestPathとして指定することにより取得
+    - 2.または4.で合成データを$TestPathとして指定することにより取得
 
 #### 出力
 - 関節位置推定精度(Average Precision) : 
-    - Data/Main/JointPositionPrediction/Evaluation/$TestPath\*\_$NTrain\_$DiscrType.csv
+    - 従来手法: Data/Main/JointPositionPrediction/Evaluation/$TestPath\*\_$NTrain\.csv
+    - 提案手法: Data/Main/JointPositionPrediction/Evaluation/$TestPath\*\_$NTrain\_$DiscrType.csv
 
 ### 6. 実データに対する引き出し推定
 #### 実行方法
@@ -185,29 +184,33 @@ Poserを用いたデータの生成および実データの取得は事前に終
 ### 従来手法との比較
 ```sh
 cd Script/Main/
-python camera_location_clustering.py -n 1000 -N 100
-python body_part_classification.py -t SyntheticImages/*male/ -n 15000 -N 100
-python joint_position_prediction.py -t SyntheticImages/*male/ -n 15000 -N 100
-python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 100 
-python divide_and_conquer_BPC.py -t SyntheticImages/*male/ -n 15000 -N 100 -D type_1000_100_22
-python joint_position_prediction.py -t SyntheticImages/*male/ -n 15000 -N 100 -D type_1000_100_22
-python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 100 -D type_1000_100_22
+python camera_location_clustering.py -n 1000 -N 29
+python body_part_classification.py -t SyntheticImages/*male/ -n 15000 -N 290
+python joint_position_prediction.py -t SyntheticImages/*male/ -n 15000 -N 29
+python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 29 
+python divide_and_conquer_BPC.py -t SyntheticImages/*male/ -n 15000 -N 29 -D type_1000_100_22
+python joint_position_prediction.py -t SyntheticImages/*male/ -n 15000 -N 29 -D type_1000_100_22
+python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 29 -D type_1000_100_22
 ```
+※テスト画像20枚で評価。カメラ視野からはみ出ている画像(9枚)を除外して評価を行った。
+
+
 
 ### 離散化方法の最適化
 ```sh
 cd Script/Main/
 python camera_location_clustering.py -n 1000 -N 100
-python divide_and_conquer_BPC.py -D type_1000_100_24 -n 15000 -N 100
-python joint_position_prediction.py -D type_1000_100_24 -n 15000 -N 100
-python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 100 -D type_1000_100_24
-python divide_and_conquer_BPC.py -D type_1000_100_23 -n 15000 -N 100
-python joint_position_prediction.py -D type_1000_100_23 -n 15000 -N 100
-python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 100 -D type_1000_100_23
-python divide_and_conquer_BPC.py -D type_1000_100_22 -n 15000 -N 100
-python joint_position_prediction.py -D type_1000_100_22 -n 15000 -N 100
-python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 100 -D type_1000_100_22
+python divide_and_conquer_BPC.py -D type_1000_100_24 -n 15000 -N 29
+python joint_position_prediction.py -D type_1000_100_24 -n 15000 -N 29
+python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 29 -D type_1000_100_24
+python divide_and_conquer_BPC.py -D type_1000_100_23 -n 15000 -N 29
+python joint_position_prediction.py -D type_1000_100_23 -n 15000 -N 29
+python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 29 -D type_1000_100_23
+python divide_and_conquer_BPC.py -D type_1000_100_22 -n 15000 -N 29
+python joint_position_prediction.py -D type_1000_100_22 -n 15000 -N 29
+python JPP_precision.py -t SyntheticImages/*male/ -n 15000 -N 29 -D type_1000_100_22
 ```
+※テスト画像20枚で評価。カメラ視野からはみ出ている画像(9枚)を除外して評価を行った。
 
 ### 実データへの適用可能性
 ```sh
@@ -220,6 +223,9 @@ python drawer_prediction.py -t CapturedVideos/person*/ -n 15000 -D type_1000_100
 
 ## ディレクトリ構成
 
+今回の研究で用いたデータとスクリプトのディレクトリ構造を下に示す。
+なお、githubにおけるレポジトリ上には、Scriptディレクトリのみをpushしている。※ディレクトリ作成スクリプトは作成していないので、追加する際には手動での追加が必要。
+
 - PoseEstimation
     - Script
         - Main
@@ -229,17 +235,27 @@ python drawer_prediction.py -t CapturedVideos/person*/ -n 15000 -D type_1000_100
             - camera_location_clustering.py : 提案手法(カメラ位置離散化)
             - JPP_precision.py : 関節位置推定精度評価
             - drawer_prediction.py : 引き出し推定
-            - Modules : モジュール群
-            - ...
+            - Modules : 要素技術モジュール群
+            - Others : 予備実験等で用いたスクリプト群(使用する際にはそれぞれのスクリプトファイルをMain直下に置く必要がある。)
         - Preprocessing
-            - Poser : Poser用データ生成スクリプト群
-                - make_train.py
-                - make_test.py
-            - MotionBVH : BVHファイルから姿勢を減らすのに用いたスクリプト群
+            - Poser
+                - make_data.py : Poser用データ生成スクリプト
+                - Modules
+            - MotionBVH
+                - preprocessing.py : CMU Mocap[[3]]から取得した.bvhファイル内の姿勢を、互いに全関節が5cm以上離れるように削減。
+                - PreproScript
+                    - normalize_bvh.py : 全姿勢の位置と方向合わせ
+                    - bvh2wc.py : .bvhから各関節位置情報を取得
+                    - reduce_bvh.py : 各関節位置情報から姿勢を削減
+                    - FNClustering.cpp : 各関節位置情報から姿勢を削減(高速版※analyze_dir.pyの事前実行が必要)
+                    - analyze_dir.py : 対象.bvhファイルの列挙
             - RealData
                 - video_segmentation.py : 動画を画像列に変換(引き出しに近い所のみ抽出)
-                - xtion_io.py
-                - ... : その他引き出しの正解位置を求めるために用いたスクリプト群
+                - xtion_io.py : Xtion Pro Liveでの動画取得
+                - kinect_io.py : Kinect v2 for Windowsでの動画取得
+                - pick_gt_px.py : 引き出しの正解位置(2D)を画像上でクリックして取得
+                - interpolate_gt_px.py : pick_gt_px.pyで取得した6つの正解位置の間を補間して33箇所の正解位置(2D)を取得
+                - make_3d_drawers_gt.py : 2Dの正解位置を3Dに変換
 
     - Data
         - Main
@@ -264,7 +280,9 @@ python drawer_prediction.py -t CapturedVideos/person*/ -n 15000 -D type_1000_100
                     - pkl : Random Forestをpickle化したものを保存
                     - discretization_setting : 離散化方法を保存
                     - similarity_matrix : 離散化の過程の弱推定器間類似度を保存
-                    - ... : その他設定ファイルと特徴量等を保存
+                    - input_order.csv : ランダムフォレストに読み込ませるfemaleとmaleの訓練データの順番(15,000組をランダムに並び替え)。
+                    - test_input_order.csv : femaleとmaleのテスト画像を試す順番(1000組をランダムに並び替え)。
+                    - ... : その他特徴量等を保存
                 - Output : 出力結果
             - JointPositionPrediction
                 - Output : 出力結果
