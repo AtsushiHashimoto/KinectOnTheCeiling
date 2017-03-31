@@ -39,7 +39,7 @@
 ### 1. Poserによるデータ生成
 #### 実行方法
 1. Poserを開く
-2. ファイル > スクリプトの実行 で，Script/Preprocessing/Poser/make\_data.py を選択
+2. ファイル > スクリプトの実行 で，Script/Preprocessing/Poser/make\_(train|test).py を選択
 
 ※ 基本的には0.5sec程度で1組のデータが生成されるが，1日程経つと生成速度がかなり落ちるため，一旦Poserを強制終了した後に，実行し直すという手順を取ったほうが生成が早く終わる．
 
@@ -50,8 +50,10 @@
     - Data/Preprocessing/Poser/(female|male).pz3
 
 #### 出力
-- 合成データ(深度画像，部位ラベル，Poser内パラメタの組 16,000×64組) : 
-    - Data/Main/BodyPartClassification/SyntheticImages/(female|male)/\*( Z.png|.png|\_param)
+- 合成データ(深度画像，部位ラベル，Poser内パラメタの組 15,000×64組) : 
+    - Data/Main/BodyPartClassification/SyntheticImages/train/\*( Z.png|.png|\_param)
+- 合成テストデータ :
+    - Data/Main/BodyPartClassification/SyntheticImages/test/\*( Z.png|.png|\_param)
 
 
 ### 2. 実データの取得
@@ -92,7 +94,7 @@ cd Script/Main/
 python body_part_classification.py -t TestPath -n NTrain -N NTest
 python joint_position_prediction.py -t TestPath -n NTrain -N NTest
 ```
-TestPathには，合成データに対して実行する時はSyntheticImages/\*male/などと指定．
+TestPathには，合成データに対して実行する時はSyntheticImages/test/などと指定．
 実データに対して実行する時はCapturedImages/person1/等と指定．
 
 #### 入力
@@ -100,10 +102,11 @@ TestPathには，合成データに対して実行する時はSyntheticImages/\*
 - テスト深度画像$NTest枚
     - Data/Main/BodyPartClassification/$TestPath\*.png
 
+
 #### 出力
 - 人物姿勢推定結果(関節の3次元位置，描画した関節の2次元位置の組 $NTest組) : 
     - Data/Main/JointPositionPrediction/Output/$TestPath\*\_$NTrain\_JPP(.ply|.png)
-
+※ .plyファイルに関しては[このページ](https://jp.mathworks.com/help/vision/ug/the-ply-format.html?requestedDomain=jp.mathworks.com)を参考にするとわかりやすい．[MeshLab](http://www.meshlab.net/)などを用いて中身を確認すると視覚的にもわかりやすいと思います．
 
 ### 3. 提案手法の実行(カメラ位置の離散化)
 #### 実行方法
@@ -117,8 +120,15 @@ python camera_location_clustering.py -n NTrain -N NTest
 - 合成テスト深度画像$NTest×64枚
 
 #### 出力
-- 離散化設定ファイル : 
+- 離散化設定ファイル(Discretization type file) : 
     - Data/Main/BodyPartClassification/Intermediate/discr\_setting\_type/type\_$NTrain\_$NTest\_\*.csv
+
+出力される.csvファイルはそれぞれ離散化方法を表している．
+ファイル内の各行が一つの離散相対的カメラ位置に対応しており，下図で示す最小粒度離散カメラ位置の番号の集合で表される．
+このとき，それぞれの最小粒度離散カメラ位置は，水平70°(-35°〜35°)，鉛直90°(0°〜90°)を10°ずつ分割したものである．
+※ 以降で出てくるDiscrTypeでは，ここで出力される離散化設定ファイル名から.csvを除いたもの(type\_$NTrain\_$NTest\_\*)を指定する．
+なお，\*の部分はマージ回数を表しており，分割数には対応しないことに注意する．.csvファイル内の行数が離散化の分割数に対応する．
+![最小粒度離散化](./.最小粒度離散化.jpg)
 
 ### 4. 提案手法の実行(人物姿勢推定)
 #### 実行方法
@@ -128,8 +138,10 @@ cd Script/Main/
 python divide_and_conquer_BPC.py -t TestPath -n NTrain -N NTest -D DiscrType
 python joint_position_prediction.py -t TestPath -n NTrain -N NTest -D DiscrType
 ```
-TestPathには，合成データに対して実行する時はSyntheticImages/\*male/などと指定．
+TestPathには，テストデータが含まれるパスを指定する．合成データに対して実行する時はSyntheticImages/test/などと指定．
 実データに対して実行する時はCapturedImages/person1/等と指定．
+
+DiscrTypeには，3.で出力されたtype\_\*\_\*\_\*を指定する．
 
 #### 入力
 - 合成学習データ(深度画像，部位ラベル，Poser内パラメタの組 $NTrain×64組)
@@ -148,6 +160,7 @@ TestPathには，合成データに対して実行する時はSyntheticImages/\*
 cd Script/Main/
 python JPP_precision.py -t TestPath -n NTrain -N NTest [-D DiscrType]
 ```
+$NTrain個の学習データでの実験に対して，$TestPath以下の$NTest個のテストデータで評価を行う際の精度を出力．
 ※ DiscrTypeを指定しない場合は従来手法の精度評価．指定した場合は提案手法の精度評価
 
 #### 入力
@@ -168,7 +181,7 @@ python drawer_prediction.py -t TestPath -n NTrain [-D DiscrType]
 ※ DiscrTypeを指定しない場合は従来手法の精度評価．指定した場合は提案手法の精度評価
 
 #### 入力
-- 実データに対する人物姿勢推定結果(関節の3次元位置データ$NTest個)
+- 実データに対する人物姿勢推定結果(関節の3次元位置データ)
     - 2.または3.で実データを$TestPathとして指定することにより取得
 
 #### 出力
@@ -224,6 +237,7 @@ python drawer_prediction.py -t CapturedVideos/person*/ -n 15000 -D type_1000_100
 ## ディレクトリ構成
 
 今回の研究で用いたデータとスクリプトのディレクトリ構造を下に示す。
+2017年3月現在gomibakoに接続されているSSD内にデータ及びスクリプトが保存されている．
 なお、githubにおけるレポジトリ上には、Scriptディレクトリのみをpushしている。※ディレクトリ作成スクリプトは作成していないので、追加する際には手動での追加が必要。
 
 - PoseEstimation
@@ -239,7 +253,7 @@ python drawer_prediction.py -t CapturedVideos/person*/ -n 15000 -D type_1000_100
             - Others : 予備実験等で用いたスクリプト群(使用する際にはそれぞれのスクリプトファイルをMain直下に置く必要がある。)
         - Preprocessing
             - Poser
-                - make_data.py : Poser用データ生成スクリプト
+                - make_(train|test).py : Poser用データ生成スクリプト
                 - Modules
             - MotionBVH
                 - preprocessing.py : CMU Mocap[[3]]から取得した.bvhファイル内の姿勢を、互いに全関節が5cm以上離れるように削減。
@@ -263,6 +277,8 @@ python drawer_prediction.py -t CapturedVideos/person*/ -n 15000 -D type_1000_100
                 - SyntheticImages
                     - female
                     - male
+                    - train
+                    - test
                 - CapturedImages
                     - person1
                         - $videoname\_\*.png
